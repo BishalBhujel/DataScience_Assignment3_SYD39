@@ -57,3 +57,48 @@ dataset2.columns = [c.strip().lower() for c in dataset2.columns]
 # printing the columns of the dataset as a list
 print("\nDataset1 columns:", dataset1.columns.tolist())
 print("Dataset2 columns:", dataset2.columns.tolist())
+
+# Defining the column names for better readability
+risk_col = 'risk'
+reward_col = 'reward'
+season_col = 'season'
+rat_arrivals_col = 'rat_arrival_number'
+bat_landings_col = 'bat_landing_number'
+food_col = 'food_availability'
+time_col_d1 = 'start_time'   # if available
+time_col_d2 = 'time'
+
+# Checking for missing values in dataset1 and dataset2, and converting it to numeric
+for col in [risk_col, reward_col]:
+    if col in dataset1.columns:
+        dataset1[col] = pd.to_numeric(dataset1[col], errors='coerce').astype('Int64')
+
+for col in [rat_arrivals_col, bat_landings_col, food_col]:
+    if col in dataset2.columns:
+        dataset2[col] = pd.to_numeric(dataset2[col], errors='coerce')
+
+# Clean season labels
+if season_col in dataset1.columns:
+    dataset1[season_col] = dataset1[season_col].astype(str).str.strip().str.lower()
+
+# Datetime parsing
+for c, df in [(time_col_d1, dataset1), (time_col_d2, dataset2)]:
+    if c in df.columns:
+        try:
+            df[c] = pd.to_datetime(df[c])
+        except:
+            pass
+
+if risk_col in dataset1.columns:
+    before = dataset1.shape
+    dataset1 = dataset1.dropna(subset=[risk_col])
+    print(f"\nDropped rows with missing '{risk_col}' in dataset1: {before} -> {dataset1.shape}")
+
+if (rat_arrivals_col in dataset2.columns) and (bat_landings_col in dataset2.columns):
+    before = dataset2.shape
+    dataset2 = dataset2.dropna(subset=[rat_arrivals_col, bat_landings_col])
+    print(f"Dropped rows with missing '{rat_arrivals_col}'/'{bat_landings_col}' in dataset2: {before} -> {dataset2.shape}")
+
+print("\nAfter cleaning - shapes:")
+print(" - dataset1:", dataset1.shape)
+print(" - dataset2:", dataset2.shape)

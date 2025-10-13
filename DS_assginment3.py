@@ -102,3 +102,43 @@ if (rat_arrivals_col in dataset2.columns) and (bat_landings_col in dataset2.colu
 print("\nAfter cleaning - shapes:")
 print(" - dataset1:", dataset1.shape)
 print(" - dataset2:", dataset2.shape)
+
+# Checking Rat presence & intensity
+if rat_arrivals_col in dataset2.columns:
+    dataset2['rat_present'] = (dataset2[rat_arrivals_col] > 0).astype(int)
+    def rat_intensity(x):
+        if pd.isna(x): return np.nan
+        if x == 0: return 0
+        if x <= 2: return 1
+        if x <= 5: return 2
+        return 3
+    dataset2['rat_intensity'] = dataset2[rat_arrivals_col].apply(rat_intensity)
+
+# Calculating Season inference if missing
+if season_col not in dataset1.columns and 'month' in dataset1.columns:
+    dataset1['season'] = dataset1['month'].map({
+        12:'summer',1:'summer',2:'summer',3:'autumn',4:'autumn',5:'autumn',
+        6:'winter',7:'winter',8:'winter',9:'spring',10:'spring',11:'spring'
+    })
+
+if season_col not in dataset2.columns and 'month' in dataset2.columns:
+    dataset2['season'] = dataset2['month'].map({
+        12:'summer',1:'summer',2:'summer',3:'autumn',4:'autumn',5:'autumn',
+        6:'winter',7:'winter',8:'winter',9:'spring',10:'spring',11:'spring'
+    })
+
+# Merge dataset1 with interval info from dataset2 if time available
+def floor_to_30min(dt):
+    return dt.dt.floor('30T')
+
+if (time_col_d1 in dataset1.columns) and (time_col_d2 in dataset2.columns):
+    dataset1['interval'] = floor_to_30min(dataset1[time_col_d1])
+    dataset2['interval'] = floor_to_30min(dataset2[time_col_d2])
+    merged = dataset1.merge(dataset2[['interval','rat_present',rat_arrivals_col,
+                                      'rat_intensity',food_col,bat_landings_col]],
+                            on='interval', how='left')
+else:
+    merged = dataset1.copy()
+    merged['rat_present'] = np.nan
+
+print("Merged dataset shape:", merged.shape)

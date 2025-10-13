@@ -24,6 +24,7 @@ We will perform both:
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
 
 # Configuring the specific style i.e graph background is white, muted colors and bigger font size
 sns.set(style="whitegrid", palette="muted", font_scale=1.1)
@@ -65,23 +66,24 @@ season_col = 'season'
 rat_arrivals_col = 'rat_arrival_number'
 bat_landings_col = 'bat_landing_number'
 food_col = 'food_availability'
-time_col_d1 = 'start_time'   # if available
+time_col_d1 = 'start_time'
 time_col_d2 = 'time'
 
-# Checking for missing values in dataset1 and dataset2, and converting it to numeric
+# Checking for missing values in dataset1 and converting it to numeric
 for col in [risk_col, reward_col]:
     if col in dataset1.columns:
         dataset1[col] = pd.to_numeric(dataset1[col], errors='coerce').astype('Int64')
 
+# Checking for missing values in dataset2, and converting it to numeric
 for col in [rat_arrivals_col, bat_landings_col, food_col]:
     if col in dataset2.columns:
         dataset2[col] = pd.to_numeric(dataset2[col], errors='coerce')
 
-# Clean season labels
+# Clean season labels and converting the season column data into lowercase
 if season_col in dataset1.columns:
     dataset1[season_col] = dataset1[season_col].astype(str).str.strip().str.lower()
 
-# Datetime parsing
+# Parsing the date time from the date time column present in both datasets
 for c, df in [(time_col_d1, dataset1), (time_col_d2, dataset2)]:
     if c in df.columns:
         try:
@@ -89,21 +91,26 @@ for c, df in [(time_col_d1, dataset1), (time_col_d2, dataset2)]:
         except:
             pass
 
+# dropping the NA values for risk column in dataset 1 and printing the dropped rows number
 if risk_col in dataset1.columns:
     before = dataset1.shape
     dataset1 = dataset1.dropna(subset=[risk_col])
     print(f"\nDropped rows with missing '{risk_col}' in dataset1: {before} -> {dataset1.shape}")
 
+# dropping the NA values for rat_arrival_number and bat_arrival_number columns in dataset 2 and printing the dropped rows number
 if (rat_arrivals_col in dataset2.columns) and (bat_landings_col in dataset2.columns):
     before = dataset2.shape
     dataset2 = dataset2.dropna(subset=[rat_arrivals_col, bat_landings_col])
     print(f"Dropped rows with missing '{rat_arrivals_col}'/'{bat_landings_col}' in dataset2: {before} -> {dataset2.shape}")
 
+# Peinting the shape of the datasets after dropping the NA rows
 print("\nAfter cleaning - shapes:")
 print(" - dataset1:", dataset1.shape)
 print(" - dataset2:", dataset2.shape)
 
-# Checking Rat presence & intensity
+# Performing feature engineering for furthur analysis
+
+# Performing the analysis to find out rat intensity and presence
 if rat_arrivals_col in dataset2.columns:
     dataset2['rat_present'] = (dataset2[rat_arrivals_col] > 0).astype(int)
     def rat_intensity(x):

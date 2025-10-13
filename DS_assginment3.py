@@ -149,3 +149,46 @@ else:
     merged['rat_present'] = np.nan
 
 print("Merged dataset shape:", merged.shape)
+
+
+# Performing and plotting graph for Investigation A: Risk-taking vs rat presence
+if 'risk' in merged.columns and 'rat_present' in merged.columns:
+    temp = merged.dropna(subset=['risk','rat_present'])
+    if len(temp) > 0:
+        rat_risk_ct = pd.crosstab(temp['rat_present'], temp['risk'])
+        print("Contingency Table (Rat Presence x Risk):\n", rat_risk_ct)
+
+        prop_by_rat = temp.groupby('rat_present')['risk'].mean().reset_index()
+        if not prop_by_rat.empty:
+            sns.barplot(x='rat_present', y='risk', data=prop_by_rat)
+            plt.xticks([0,1], ['No Rats', 'Rats Present'])
+            plt.ylabel('Proportion Risk-taking')
+            plt.title('Risk-taking vs Rat Presence')
+            plt.show()
+
+# Performing and plotting graph for Investigation A: Rat arrivals vs Bat landings
+if rat_arrivals_col in dataset2.columns and bat_landings_col in dataset2.columns:
+    temp = dataset2.dropna(subset=[rat_arrivals_col, bat_landings_col])
+    if len(temp) > 0:
+        sns.scatterplot(x=rat_arrivals_col, y=bat_landings_col, data=temp, alpha=0.6)
+        plt.title('Rat Arrivals vs Bat Landings')
+        plt.show()
+
+# Performing and plotting graph for Investigation B: Risk-taking by season
+if 'season' in merged.columns and 'risk' in merged.columns:
+    temp = merged.dropna(subset=['season','risk'])
+    if len(temp) > 0:
+        sns.barplot(x='season', y='risk', data=temp, estimator=np.mean,
+                    order=sorted(temp['season'].unique()))
+        plt.title('Risk-taking by Season')
+        plt.ylabel('Proportion Risk-taking')
+        plt.show()
+
+# Performing and plotting graph for Investigation B: Bat landings by season
+if 'season' in dataset2.columns and 'bat_landing_number' in dataset2.columns:
+    temp = dataset2.dropna(subset=['season','bat_landing_number'])
+    if len(temp) > 0:
+        sns.boxplot(x='season', y='bat_landing_number', data=temp,
+                    order=sorted(temp['season'].unique()))
+        plt.title('Bat Landings by Season')
+        plt.show()

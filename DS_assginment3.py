@@ -25,6 +25,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+from scipy.stats import chi2_contingency, pearsonr, ttest_ind
+from statsmodels.stats.proportion import proportions_ztest
 
 # Configuring the specific style i.e graph background is white, muted colors and bigger font size
 sns.set(style="whitegrid", palette="muted", font_scale=1.1)
@@ -192,3 +194,48 @@ if 'season' in dataset2.columns and 'bat_landing_number' in dataset2.columns:
                     order=sorted(temp['season'].unique()))
         plt.title('Bat Landings by Season')
         plt.show()
+
+# Investigation A: Performing Chi-square test
+if 'rat_present' in merged.columns and 'risk' in merged.columns:
+    temp = merged.dropna(subset=['rat_present','risk'])
+    if len(temp) > 0:
+        contingency = pd.crosstab(temp['rat_present'], temp['risk'])
+        if contingency.shape[0] > 0 and contingency.shape[1] > 0:
+            chi2, p, dof, expected = chi2_contingency(contingency.fillna(0))
+            print(f"Chi-square: chi2={chi2:.3f}, dof={dof}, p={p:.4f}")
+
+# Investigation A: Performing Proportions z-test
+if 'rat_present' in merged.columns and 'risk' in merged.columns:
+    temp = merged.dropna(subset=['rat_present','risk'])
+    grouped = temp.groupby('rat_present')['risk'].agg(['sum','count']).reset_index()
+    if grouped.shape[0] == 2:
+        stat, pval = proportions_ztest(grouped['sum'].values, grouped['count'].values)
+        print(f"Proportions z-test: stat={stat:.3f}, p={pval:.4f}")
+
+# Investigation A: Performing Correlation Test
+if rat_arrivals_col in dataset2.columns and bat_landings_col in dataset2.columns:
+    temp = dataset2.dropna(subset=[rat_arrivals_col, bat_landings_col])
+    if len(temp) > 1:
+        r, p = pearsonr(temp[rat_arrivals_col], temp[bat_landings_col])
+        print(f"Pearson correlation: r={r:.3f}, p={p:.4f}")
+
+# Investigation B: Performing Seasonal risk-taking (Winter vs Spring)
+if 'season' in merged.columns and 'risk' in merged.columns:
+    temp = merged.dropna(subset=['season','risk'])
+    if {'winter','spring'}.issubset(set(temp['season'].unique())):
+        winter = temp[temp['season']=='winter']['risk']
+        spring = temp[temp['season']=='spring']['risk']
+        if len(winter) > 0 and len(spring) > 0:
+            stat, pval = proportions_ztest([winter.sum(), spring.sum()],
+                                           [len(winter), len(spring)])
+            print(f"Winter vs Spring risk-taking z-test: stat={stat:.3f}, p={pval:.4f}")
+
+# Investigation B: Performing Seasonal bat landings
+if 'season' in dataset2.columns and 'bat_landing_number' in dataset2.columns:
+    temp = dataset2.dropna(subset=['season','bat_landing_number'])
+    if {'winter','spring'}.issubset(set(temp['season'].unique())):
+        w = temp[temp['season']=='winter']['bat_landing_number']
+        s = temp[temp['season']=='spring']['bat_landing_number']
+        if len(w) > 1 and len(s) > 1:
+            tstat, tp = ttest_ind(w, s, equal_var=False, nan_policy='omit')
+            print(f"Winter vs Spring bat landings t-test: t={tstat:.3f}, p={tp:.4f}")

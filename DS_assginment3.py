@@ -239,3 +239,73 @@ if 'season' in dataset2.columns and 'bat_landing_number' in dataset2.columns:
         if len(w) > 1 and len(s) > 1:
             tstat, tp = ttest_ind(w, s, equal_var=False, nan_policy='omit')
             print(f"Winter vs Spring bat landings t-test: t={tstat:.3f}, p={tp:.4f}")
+
+#Exploring key relationships in the data:
+    #Risk-taking vs Rat Presence
+    # Rat Arrivals vs Bat Landings
+    # Risk-taking by Season
+    # Bat Landings by Season
+
+# Risk-taking vs Rat Presence
+if 'risk' in merged.columns and 'rat_present' in merged.columns:
+    temp = merged.dropna(subset=['risk','rat_present'])
+    sns.barplot(x='rat_present', y='risk', data=temp, estimator=np.mean)
+    plt.xticks([0,1], ['No Rats', 'Rats Present'])
+    plt.ylabel('Proportion of Risk-taking')
+    plt.title('Risk-taking vs Rat Presence')
+    plt.show()
+
+# Rat Arrivals vs Bat Landings
+if 'rat_arrival_number' in dataset2.columns and 'bat_landing_number' in dataset2.columns:
+    sns.scatterplot(x='rat_arrival_number', y='bat_landing_number', data=dataset2)
+    plt.title('Rat Arrivals vs Bat Landings')
+    plt.show()
+
+# Risk-taking by Season
+if 'season' in merged.columns and 'risk' in merged.columns:
+    sns.barplot(x='season', y='risk', data=merged, estimator=np.mean)
+    plt.title('Risk-taking by Season')
+    plt.ylabel('Proportion of Risk-taking')
+    plt.show()
+
+# Bat Landings by Season
+if 'season' in dataset2.columns and 'bat_landing_number' in dataset2.columns:
+    sns.boxplot(x='season', y='bat_landing_number', data=dataset2)
+    plt.title('Bat Landings by Season')
+    plt.show()
+
+
+#Inferential Analysis
+
+#PerformING statistical tests to check relationships:
+    # Chi-Square: Risk vs Reward
+    # Correlation: Rat Arrivals vs Bat Landings
+
+# 1. Chi-Square Testing: Risk vs Reward
+contingency_table = pd.crosstab(merged['risk'], merged['reward'])
+print("Contingency Table (Risk vs Reward):\n", contingency_table, "\n")
+
+chi2, p, dof, expected = chi2_contingency(contingency_table)
+
+print("Chi-square Test Results:")
+print("Chi2 statistic:", chi2)
+print("Degrees of freedom:", dof)
+print("Expected frequencies:\n", expected)
+print("p-value:", p)
+
+if p < 0.05:
+    print("✅ Significant relationship between Risk and Reward")
+else:
+    print("❌ No significant relationship between Risk and Reward")
+
+# 2. Correlation Test: Rat Arrivals vs Bat Landings
+corr, pval = pearsonr(dataset2['rat_arrival_number'], dataset2['bat_landing_number'])
+print("\nCorrelation Test (Rat Arrivals vs Bat Landings):")
+print("Correlation coefficient (r):", corr)
+print("p-value:", pval)
+
+if pval < 0.05:
+    print("✅ Significant correlation between Rat Arrivals and Bat Landings")
+else:
+    print("❌ No significant correlation")
+

@@ -24,6 +24,8 @@ We will perform both:
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
 import numpy as np
 from scipy.stats import chi2_contingency, pearsonr, ttest_ind
 from statsmodels.stats.proportion import proportions_ztest
@@ -240,72 +242,122 @@ if 'season' in dataset2.columns and 'bat_landing_number' in dataset2.columns:
             tstat, tp = ttest_ind(w, s, equal_var=False, nan_policy='omit')
             print(f"Winter vs Spring bat landings t-test: t={tstat:.3f}, p={tp:.4f}")
 
-#Exploring key relationships in the data:
-    #Risk-taking vs Rat Presence
-    # Rat Arrivals vs Bat Landings
-    # Risk-taking by Season
-    # Bat Landings by Season
 
-# Risk-taking vs Rat Presence
-if 'risk' in merged.columns and 'rat_present' in merged.columns:
-    temp = merged.dropna(subset=['risk','rat_present'])
-    sns.barplot(x='rat_present', y='risk', data=temp, estimator=np.mean)
-    plt.xticks([0,1], ['No Rats', 'Rats Present'])
-    plt.ylabel('Proportion of Risk-taking')
-    plt.title('Risk-taking vs Rat Presence')
-    plt.show()
+# Performing Logistic Regression test
+print("\n--- Logistic Regression (risk ~ rat_present + food + season) ---")
 
-# Rat Arrivals vs Bat Landings
-if 'rat_arrival_number' in dataset2.columns and 'bat_landing_number' in dataset2.columns:
-    sns.scatterplot(x='rat_arrival_number', y='bat_landing_number', data=dataset2)
-    plt.title('Rat Arrivals vs Bat Landings')
-    plt.show()
+logit = None
+if ('risk' in merged.columns) and ('rat_present' in merged.columns):
+    model_df = merged[['risk', 'rat_present']].copy()
+    if food_col in merged.columns:
+        model_df['food_avail'] = merged[food_col]
+    if 'season' in merged.columns:
+        model_df['season_cat'] = merged['season'].astype('category')
 
-# Risk-taking by Season
+    model_df = model_df.dropna()
+    print("Model dataframe shape:", model_df.shape)
+    print("Unique 'risk' values:", model_df['risk'].unique())
+
+    if model_df['risk'].nunique() < 2:
+        print("Model cannot be fit: 'risk' only has one unique value.")
+    else:
+        formula = 'risk ~ rat_present'
+        if 'food_avail' in model_df.columns:
+            formula += ' + food_avail'
+        if 'season_cat' in model_df.columns:
+            formula += ' + C(season_cat)'
+
+        print("Using formula:", formula)
+
+        try:
+            logit = smf.logit(formula=formula, data=model_df).fit(disp=False)
+            print("\n✅ Logistic regression fitted successfully!\n")
+            print(logit.summary())
+        # Raise exception incase of test failure
+        except Exception as e:
+            print("Logistic regression error:", e)
+else:
+    print("Skipping logistic regression — required columns missing.")
+
+
+# Performed poisson model test
+if rat_arrivals_col in dataset2.columns and bat_landings_col in dataset2.columns:
+    dfm = dataset2.dropna(subset=[rat_arrivals_col, bat_landings_col, food_col]).copy()
+    if len(dfm) > 0:
+        formula = f"{bat_landings_col} ~ {rat_arrivals_col} + {food_col} + C(season)"
+        try:
+            poisson_model = smf.glm(formula=formula, data=dfm,
+                                    family=sm.families.Poisson()).fit()
+            print(poisson_model.summary())
+        # Raise exception incase of test failure 
+        except Exception as e:
+            print("Poisson model error:", e)
+
+
+# Plotting the graph for Risk taking accross season
 if 'season' in merged.columns and 'risk' in merged.columns:
-    sns.barplot(x='season', y='risk', data=merged, estimator=np.mean)
-    plt.title('Risk-taking by Season')
-    plt.ylabel('Proportion of Risk-taking')
-    plt.show()
+    temp = merged.dropna(subset=['season','risk'])
+    if len(temp) > 0:
+        sns.barplot(x='season', y='risk', data=temp, estimator=np.mean,
+                    order=sorted(temp['season'].unique()))
+        plt.title('Risk-taking across Seasons')
+        plt.show()
 
-# Bat Landings by Season
+# Plotting the graph for Bat Landings across Seasons
 if 'season' in dataset2.columns and 'bat_landing_number' in dataset2.columns:
-    sns.boxplot(x='season', y='bat_landing_number', data=dataset2)
-    plt.title('Bat Landings by Season')
-    plt.show()
+    temp = dataset2.dropna(subset=['season','bat_landing_number'])
+    if len(temp) > 0:
+        sns.boxplot(x='season', y='bat_landing_number', data=temp,
+                    order=sorted(temp['season'].unique()))
+        plt.title('Bat Landings across Seasons')
+        plt.show()
+
+# Plotting the graph for Food Availability across Seasons
+if 'season' in dataset2.columns and 'food_availability' in dataset2.columns:
+    temp = dataset2.dropna(subset=['season','food_availability'])
+    if len(temp) > 0:
+        sns.boxplot(x='season', y='food_availability', data=temp,
+                    order=sorted(temp['season'].unique()))
+        plt.title('Food Availability across Seasons')
+        plt.show()
 
 
-#Inferential Analysis
+# creating the logistic summary report file
+try:
+    with open("logistic_summary.txt","w") as f:
+        f.write(logit.summary().as_text())
+    print("Saved logistic_summary.txt")
+except:
+    print("Logistic regression summary not available")
 
-#PerformING statistical tests to check relationships:
-    # Chi-Square: Risk vs Reward
-    # Correlation: Rat Arrivals vs Bat Landings
+# creating the poisson summary report file
+try:
+    with open("poisson_summary.txt","w") as f:
+        f.write(poisson_model.summary().as_text())
+    print("Saved poisson_summary.txt")
+except:
+    print("Poisson regression summary not available")
 
-# 1. Chi-Square Testing: Risk vs Reward
-contingency_table = pd.crosstab(merged['risk'], merged['reward'])
-print("Contingency Table (Risk vs Reward):\n", contingency_table, "\n")
+# Plotting the graph for Risk-taking vs Avoidance (Overall) and saving it as output file
+if 'risk' in merged.columns:
+    plt.figure()
+    sns.countplot(x='risk', data=merged)
+    plt.title("Risk-taking vs Avoidance (Overall)")
+    plt.savefig("risk_counts.png")
 
-chi2, p, dof, expected = chi2_contingency(contingency_table)
+# Plotting the graph for Rat Arrivals vs Bat Landings and saving it as output file
+if rat_arrivals_col in dataset2.columns and bat_landings_col in dataset2.columns:
+    plt.figure()
+    sns.scatterplot(x=rat_arrivals_col, y=bat_landings_col, data=dataset2, alpha=0.6)
+    plt.title("Rat Arrivals vs Bat Landings")
+    plt.savefig("rat_vs_bats.png")
 
-print("Chi-square Test Results:")
-print("Chi2 statistic:", chi2)
-print("Degrees of freedom:", dof)
-print("Expected frequencies:\n", expected)
-print("p-value:", p)
+# Plotting the graph for Risk-taking across Seasons and saving it as output file
+if 'season' in merged.columns and 'risk' in merged.columns:
+    plt.figure()
+    sns.barplot(x='season', y='risk', data=merged, estimator=np.mean,
+                order=sorted(merged['season'].dropna().unique()))
+    plt.title("Risk-taking across Seasons")
+    plt.savefig("risk_by_season.png")
 
-if p < 0.05:
-    print("✅ Significant relationship between Risk and Reward")
-else:
-    print("❌ No significant relationship between Risk and Reward")
-
-# 2. Correlation Test: Rat Arrivals vs Bat Landings
-corr, pval = pearsonr(dataset2['rat_arrival_number'], dataset2['bat_landing_number'])
-print("\nCorrelation Test (Rat Arrivals vs Bat Landings):")
-print("Correlation coefficient (r):", corr)
-print("p-value:", pval)
-
-if pval < 0.05:
-    print("✅ Significant correlation between Rat Arrivals and Bat Landings")
-else:
-    print("❌ No significant correlation")
-
+print("Figures and model summaries saved (where available).")

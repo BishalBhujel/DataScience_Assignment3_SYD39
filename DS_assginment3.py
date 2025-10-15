@@ -1,26 +1,4 @@
-'''Investigation A: Do Bats Perceive Rats as Predators?
-
-This notebook addresses Objective 1 (Assessment 2) of the HIT140 Foundations of Data Science project.
-
-We investigate whether bats perceive rats only as food competitors or also as potential predators.  
-If rats are considered a predation risk, bats should show more avoidance behaviour or increased vigilance during foraging.
-
-We use two datasets:
-- dataset1.csv → Bat landings & behaviours (risk, reward, season, etc.)  
-- dataset2.csv → Rat arrivals & bat activity (arrivals, food availability, etc.)
-
-We will perform both:
-1. Descriptive analysis (counts, trends, plots)  
-2. Inferential analysis (statistical tests: chi-square, correlation)
-'''
-
-
-'''Importing libraries
-    1. Pandas to process the provided data in dataset1 and dataset2
-    2. matplotlib for plotting and visualization
-    3. seaborn is a highlevel interface built on top of matplotlib which can work directly on pandas df
-    4. scipy is used to perform scientific calculation such as correlation, chi square test etc.
-'''    
+   
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
